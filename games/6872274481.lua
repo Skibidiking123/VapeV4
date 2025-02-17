@@ -1,3 +1,4 @@
+--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.
 local run = function(func)
 	func()
 end
@@ -4779,11 +4780,18 @@ run(function()
 		})
 	end
 end)
+
 	
 run(function()
 	local AutoVoidDrop
 	local OwlCheck
-	
+		local function getChest()
+		for i, v in pairs(workspace:GetChildren()) do
+			if v:FindFirstChild("ChestFolderValue") and v:GetAttribute("Team") == lplr:GetAttribute("Team") then
+				return v.Position
+			end
+		end
+	end
 	AutoVoidDrop = vape.Categories.Utility:CreateModule({
 		Name = 'AutoVoidDrop',
 		Function = function(callback)
@@ -4804,7 +4812,7 @@ run(function()
 						local root = entitylib.character.RootPart
 						if root.Position.Y < lowestpoint and (lplr.Character:GetAttribute('InflatedBalloons') or 0) <= 0 and not getItem('balloon') then
 							if not OwlCheck.Enabled or not root:FindFirstChild('OwlLiftForce') then
-								for _, item in {'iron', 'diamond', 'emerald', 'gold'} do
+								for _, item in {'iron', 'diamond', 'emerald', 'gold', 'voidcrystal'} do
 									item = getItem(item)
 									if item then
 										item = bedwars.Client:Get(remotes.DropItem):CallServer({
@@ -4814,6 +4822,9 @@ run(function()
 	
 										if item then
 											item:SetAttribute('ClientDropTime', tick() + 100)
+                                            if ItemTp.Enabled then
+                                            item.Position = getChest()
+                                            end
 										end
 									end
 								end
@@ -4832,8 +4843,116 @@ run(function()
 		Default = true,
 		Tooltip = 'Refuses to drop items if being picked up by an owl'
 	})
+    ItemTp = AutoVoidDrop:CreateToggle({
+		Name = 'ItemTp',
+		Default = true,
+		Tooltip = 'Tps items back to your base'
+	})
 end)
-	
+
+
+run(function()
+    local ItemTp
+    local Target
+
+    local function getTargetPosition()
+        if Target.Value == "Team Crate" then
+            for i, v in pairs(workspace:GetChildren()) do
+                if v:FindFirstChild("ChestFolderValue") and v:GetAttribute("Team") == lplr:GetAttribute("Team") then
+                    return v.Position
+                end
+            end
+        elseif Target.Value == "Item Shop" then
+            for i, v in pairs(workspace:GetChildren()) do
+                if v:FindFirstChild("BedwarsItemShop") and v:GetAttribute("TeamId") == lplr:GetAttribute("Team") then
+                    return v.Position
+                end
+            end
+        elseif Target.Value == "Upgrade Shop" then
+            for i, v in pairs(workspace:GetChildren()) do
+                if v:FindFirstChild("TeamUpgradeShopkeeper") and v:GetAttribute("GeneratorTeam") == lplr:GetAttribute("Team") then
+                    return v.Position
+                end
+            end
+        end
+    end
+
+    ItemTp = vape.Categories.Utility:CreateModule({
+        Name = 'ItemTp',
+        Function = function(callback)
+            if callback then
+                task.spawn(function()
+                    if entitylib.isAlive then
+                        for i, itemName in pairs({'iron', 'diamond', 'emerald', 'gold', 'void_crystal'}) do
+                            local item = getItem(itemName)
+                            if item then
+                                bedwars.Client:Get(remotes.DropItem):CallServer({
+                                    item = item.tool,
+                                    amount = item.amount
+                                })
+
+                                local droppedContainer = workspace:FindFirstChild("ItemDrops")
+                                if droppedContainer then
+                                    for i, v in pairs(droppedContainer:GetChildren()) do
+                                        if v.Name == itemName and v:IsA("BasePart") then
+                                            v.Position = getTargetPosition()
+                                            local handle = v:FindFirstChild("Handle")
+                                            if handle then handle:Destroy() end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    ItemTp:Toggle()
+                end)
+            end
+        end,
+        Tooltip = 'Tps all your current items back to your base'
+    })
+
+    Target = ItemTp:CreateDropdown({
+        Name = 'Target',
+        List = {'Team Crate', 'Item Shop', 'Upgrade Shop'},
+        Default = 'Team Crate',
+        Tooltip = 'Where the item will end up at'
+    })
+end)
+
+run(function()
+    local ChestBank
+
+    local function bankItems()
+        local personal = game:GetService("ReplicatedStorage").Inventories:FindFirstChild(lplr.Name.."_personal")
+        local inv = lplr.Character.InventoryFolder.Value
+        local items = {"iron", "emerald", "diamond", "void_crystal"}
+
+        for i, itemName in pairs(items) do
+            if inv:FindFirstChild(itemName) then
+                local netManaged = game:GetService("ReplicatedStorage").rbxts_include.node_modules:FindFirstChild("@rbxts").net.out._NetManaged
+                netManaged:FindFirstChild("Inventory/SetObservedChest"):FireServer(personal)
+                netManaged:FindFirstChild("Inventory/ChestGiveItem"):InvokeServer(personal, inv[itemName])
+                netManaged:FindFirstChild("Inventory/SetObservedChest"):FireServer()
+            end
+        end
+    end
+
+    ChestBank = vape.Categories.World:CreateModule({
+        Name = 'ChestBank',
+        Function = function(callback)
+            if callback then
+                task.spawn(function()
+                    bankItems()
+                    ChestBank:Toggle()
+                end)
+            end
+        end,
+        Tooltip = 'Julian sucks ass'
+    })
+end)
+
+
+
 run(function()
 	local MissileTP
 	
@@ -7157,7 +7276,7 @@ run(function()
 		Darker = true
 	})
 end)
-	
+
 run(function()
 	local Breaker
 	local Range
@@ -7425,6 +7544,7 @@ run(function()
 	})
 end)
 	
+
 run(function()
 	vape.Legit:CreateModule({
 		Name = 'Clean Kit',
@@ -7440,6 +7560,7 @@ run(function()
 		Tooltip = 'Removes zephyr status indicator'
 	})
 end)
+
 	
 run(function()
 	local old
