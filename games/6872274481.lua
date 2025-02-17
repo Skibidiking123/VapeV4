@@ -8650,3 +8650,5 @@ getgenv().GAttacking = Attacking
 createMonitoredValue(Attacking, function(o, n)
 	getgenv().GAttacking = n
 end)
+
+vape:CreateNotification('Jaf', 'Julian is ass', 30, 'alert')
